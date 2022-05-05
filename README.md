@@ -47,7 +47,7 @@ Project Maid 主张约定优于配置，只要按照我们所事先约定的规�
 此时，我们的目录结构，应当如下：
 
 ```sh
-> /.pm/templates/page
+> /.pm/templates/view
 ```
 
 在此目录中，我们再新建一个文件夹，名为 `{{your-name}}-view`。是的，这是一个包含大括号的文件名。
@@ -55,7 +55,7 @@ Project Maid 主张约定优于配置，只要按照我们所事先约定的规�
 此时，我们的目录结构，应当如下：
 
 ```sh
-> /.pm/templates/page/{{your-name}}-view
+> /.pm/templates/view/{{your-name}}-view
 ```
 
 然后，我们在其内部新建一个 `{{your-name}}.ts.tpl` 文件，内容为：
@@ -68,7 +68,7 @@ export function {{yourName}}() {
 
 完成以上操作后，我们选择任意目录，在其上单机鼠标右键，我们可以就看到 `Create from template..` 的选项菜单。
 
-接着我们输入任意想要的名称，比如 `welcome`，再选择名为 `page` 的模板，我们就会发现目录中，根据我们的模板创建了一个新的文件夹，名称为：`welcome-view`
+接着我们输入任意想要的名称，比如 `welcome`，再选择名为 `view` 的模板，我们就会发现目录中，根据我们的模板创建了一个新的文件夹，名称为：`welcome-view`
 
 其内部，有一个名为 `welcome.ts` 的文件，内容为：
 
