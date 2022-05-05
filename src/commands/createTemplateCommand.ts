@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from "fs";
 import { basename, dirname, join } from "path";
 import { Uri, window } from "vscode";
-import { getWorkspace, readChildFolders } from "../helpers";
+import { getWorkspace, readChildFiles, readChildFolders } from "../helpers";
 import { copySync } from "fs-extra";
 import { camel, hump, hyphen, underline } from "@poech/camel-hump-under";
 import { compile } from "handlebars";
@@ -30,6 +30,14 @@ export const createTemplateCommand = async (uri: Uri) => {
     return;
   }
 
+  const templateInnerVars = {
+    yourNameRaw: instantiateName,
+    yourName: camel(instantiateName),
+    YourName: hump(instantiateName),
+    your_name: underline(instantiateName).replace(/^\_|\_+$/gm, ""),
+    "your-name": hyphen(instantiateName).replace(/^\-+|\-+$/gm, ""),
+  };
+
   const templateNames = readChildFolders(join(workspace.uri.fsPath, ".pm", "templates"));
   const templateName = await window.showQuickPick(["<cancel>", ...templateNames], {
     placeHolder: "use template..",
@@ -39,26 +47,47 @@ export const createTemplateCommand = async (uri: Uri) => {
   }
 
   const tempatePath = join(workspace.uri.fsPath, ".pm", "templates", templateName);
-  const tempateFolderName = readChildFolders(tempatePath)[0];
-  console.log(tempateFolderName);
+  const templateFolders = readChildFolders(tempatePath);
 
-  if (!tempateFolderName) {
+  if (templateFolders.length > 1) {
+    return await window.showErrorMessage(
+      `The root of a template can only exist in one folder or one .tpl file. currently, it has ${templateFolders.length} folders.`
+    );
+  }
+
+  if (templateFolders.length === 0) {
+    const templateFiles = readChildFiles(tempatePath).filter((file) => file.endsWith(".tpl"));
+    if (templateFiles.length > 1 || templateFiles.length === 0) {
+      return await window.showErrorMessage(
+        `The root of a template can only exist in one folder or one .tpl file. currently, it has ${templateFolders.length} .tpl files.`
+      );
+    }
+    const tempateFileName = templateFiles[0];
+    const tempateFileNameF = compile(`${tempateFileName}`)(templateInnerVars).slice(0, -4);
+    const createdFilePath = join(selectedPath, tempateFileNameF);
+
+    if (existsSync(createdFilePath)) {
+      return await window.showErrorMessage(`File already exists. (${tempateFileNameF})`);
+    }
+
+    await copySync(join(workspace.uri.fsPath, ".pm", "templates", templateName, tempateFileName), createdFilePath);
+    const createdFile = createdFilePath;
+
+    const raw = readFileSync(createdFile).toString();
+    const result = compile(raw)(templateInnerVars);
+    writeFileSync(createdFile, result);
+
+    window.showInformationMessage("Created file successfully.");
     return;
   }
 
-  const templateInnerVars = {
-    yourNameRaw: instantiateName,
-    yourName: camel(instantiateName),
-    YourName: hump(instantiateName),
-    your_name: underline(instantiateName).replace(/^\_|\_+$/gm, ""),
-    "your-name": hyphen(instantiateName).replace(/^\-+|\-+$/gm, ""),
-  };
+  const tempateFolderName = templateFolders[0];
 
   const tempateFolderNameF = compile(`${tempateFolderName}`)(templateInnerVars);
   const createdFolderPath = join(selectedPath, tempateFolderNameF);
 
   if (existsSync(createdFolderPath)) {
-    return await window.showErrorMessage("Folder already exists.");
+    return await window.showErrorMessage(`File already exists. (${tempateFolderNameF})`);
   }
 
   await copySync(join(workspace.uri.fsPath, ".pm", "templates", templateName, tempateFolderName), createdFolderPath);
@@ -87,5 +116,6 @@ export const createTemplateCommand = async (uri: Uri) => {
     renameSync(createdFolder, join(folderPath, compile(`${folderName}`)(templateInnerVars)));
   }
 
-  window.showInformationMessage("Created successfully.");
+  window.showInformationMessage("Created folder successfully.");
+  return;
 };

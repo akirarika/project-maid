@@ -73,9 +73,10 @@ export const readChildFolders = (parentPath: string) => {
   files.forEach((item) => {
     let tempPath = join(parentPath, item);
     let stats = statSync(tempPath);
+
     if (stats.isDirectory()) {
       filesPath.push(item);
     }
   });
-  return files;
+  return filesPath;
 };
