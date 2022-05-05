@@ -1,8 +1,18 @@
 # Project Maid
 
-Project Maid 是一款 Visual Studio Code 扩展，为开发与组织中大型项目，提供了一系列实用功能，All in One！
+Project Maid 是一款 Visual Studio Code 扩展，为开发与组织中大型项目，提供了一系列实用工具集，All in One！
 
 > 我们正在开发中，想与我们一起开发、或提出功能建议的，欢迎通过 `issue` 联系，或者在[知乎](https://www.zhihu.com/people/akirarika)私信我，我们加 QQ / 微信好友
+
+### 概述
+
+Project Maid 主要关注中大型项目的组织、开发与协作方面，并提供了一系列实用工具集。
+
+只要在项目的根目录，创建一个 `.pm` 文件夹，并进行简单的配置，即可启用 Project Maid。
+
+你可以将 `.pm` 文件夹一同提交到版本控制工具中，这样整个项目成员，都将共享相关配置。
+
+具体用法，敬请阅读你感兴趣的功能章节。
 
 ## 功能列表 (Todo)
 
@@ -19,14 +29,6 @@ Project Maid 是一款 Visual Studio Code 扩展，为开发与组织中大型�
 [ ] Git 功能：在 Commit 前，运行指定 Shell 脚本
 
 [ ] 文档功能：根据注释生成 .md 文档
-
-### 概述
-
-Project Maid 主张约定优于配置，只要按照我们所事先约定的规则创建文件即可，无需修改编辑各种恼人的 `json` 文件。
-
-只要在任意一个 Visual Studio Code 所打开的文件夹的根目录下，创建一个 `.pm` 文件夹，就可以启用 Project Maid。
-
-具体用法，敬请阅读你感兴趣的功能章节。
 
 ### 安装
 
