@@ -14,6 +14,10 @@ Project Maid 主要关注中大型项目的组织、开发与协作方面，并�
 
 具体用法，敬请阅读你感兴趣的功能章节。
 
+### 安装
+
+在 Visual Studio Code 扩展商店中，搜索 `project-maid` 并安装即可。或者[点击此处](https://marketplace.visualstudio.com/items?itemName=akirarika.project-maid)
+
 ## 功能列表 (Todo)
 
 [x] 模板功能：通过模板创建文件夹
@@ -29,10 +33,6 @@ Project Maid 主要关注中大型项目的组织、开发与协作方面，并�
 [ ] Git 功能：在 Commit 前，运行指定 Shell 脚本
 
 [ ] 文档功能：根据注释生成 .md 文档
-
-### 安装
-
-在 Visual Studio Code 扩展商店中，搜索 `project-maid` 并安装即可。或者[点击此处](https://marketplace.visualstudio.com/items?itemName=akirarika.project-maid)
 
 ## 模板功能
 
@@ -82,7 +82,7 @@ export function welcome() {
 
 到此为止，我们的第一个模板就完成啦！这不是什么魔法，在接下来的文章，我们将详细讨论他是如何实现的。
 
-### 模板和变量
+### 模板
 
 在 `/.pm/templates` 内的文件夹，都被视为是模板。
 
@@ -91,6 +91,8 @@ export function welcome() {
 文件夹内，不可以存在多个文件夹，或多个 `.tpl` 文件。
 
 Project Maid 会根据此文件(夹)及其内容，来生成最终的文件。
+
+### 变量
 
 变量是以 `{{}}` 所包含的内容，它会根据创建时的输入，动态替换为相应的内容。这就是我们前文中创建了一个名为 `{{your-name}}-view` 的模板，最终生成了名为 `welcome-view` 的文件的原因。
 
@@ -105,6 +107,20 @@ Project Maid 会根据此文件(夹)及其内容，来生成最终的文件。
 | your-name   | 用户所输入的名称，将被格式化为中划线形式 |
 
 以上变量，均可以在 `/.pm/templates/你的模板名称` 内部的所有文件夹名称、和 `.tpl` 文件的文件名及内容中使用。
+
+我们可能在使用一些框架，它们同样在使用 `{{}}` 来声明变量，例如 `Vue`、`Blade` 等。我们只需要在前面添加 `\` 进行反转义，这些变量即可不经过 Project Maid 处理。
+
+```php
+<!-- PHP Blade Template -->
+<h1>\{{ $group->title }}</h1>
+```
+
+将输出：
+
+```php
+<!-- PHP Blade Template -->
+<h1>{{ $group->title }}</h1>
+```
 
 ### tpl
 
