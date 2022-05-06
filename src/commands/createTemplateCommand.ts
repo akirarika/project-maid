@@ -6,6 +6,7 @@ import { copySync } from "fs-extra";
 import { camel, hump, hyphen, underline } from "@poech/camel-hump-under";
 import { compile } from "handlebars";
 import { readDirDeepSync } from "read-dir-deep";
+import { userInfo } from "os";
 
 export const createTemplateCommand = async (uri: Uri) => {
   const selectedPath = uri.fsPath;
@@ -30,14 +31,6 @@ export const createTemplateCommand = async (uri: Uri) => {
     return;
   }
 
-  const templateInnerVars = {
-    yourNameRaw: instantiateName,
-    yourName: camel(instantiateName),
-    YourName: hump(instantiateName),
-    your_name: underline(instantiateName).replace(/^\_|\_+$/gm, ""),
-    "your-name": hyphen(instantiateName).replace(/^\-+|\-+$/gm, ""),
-  };
-
   const templateNames = readChildFolders(join(workspace.uri.fsPath, ".pm", "templates"));
   const templateName = await window.showQuickPick(["<cancel>", ...templateNames], {
     placeHolder: "use template..",
@@ -45,6 +38,31 @@ export const createTemplateCommand = async (uri: Uri) => {
   if (!templateName || templateName === "<cancel>") {
     return;
   }
+
+  const date = new Date();
+
+  const templateInnerVars = {
+    yourNameRaw: instantiateName,
+    yourName: camel(instantiateName),
+    YourName: hump(instantiateName),
+    your_name: underline(instantiateName).replace(/^\_|\_+$/gm, ""),
+    "your-name": hyphen(instantiateName).replace(/^\-+|\-+$/gm, ""),
+    templateNameRaw: templateName,
+    templateName: camel(templateName),
+    TemplateName: hump(templateName),
+    template_name: underline(templateName).replace(/^\_|\_+$/gm, ""),
+    "template-name": hyphen(templateName).replace(/^\-+|\-+$/gm, ""),
+    path: workspace.uri.fsPath,
+    yyyy: `${date.getFullYear()}`.padStart(4, "0"),
+    mm: `${date.getMonth() + 1}`.padStart(2, "0"),
+    dd: `${date.getDate()}`.padStart(2, "0"),
+    h: `${date.getHours()}`.padStart(2, "0"),
+    m: `${date.getMinutes()}`.padStart(2, "0"),
+    s: `${date.getSeconds()}`.padStart(2, "0"),
+    timestamp: parseInt(`${date.getTime() / 1000}`),
+    timestampMs: date.getTime(),
+    username: userInfo().username,
+  };
 
   const tempatePath = join(workspace.uri.fsPath, ".pm", "templates", templateName);
   const templateFolders = readChildFolders(tempatePath);
