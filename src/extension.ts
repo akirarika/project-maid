@@ -1,16 +1,14 @@
 import * as vscode from "vscode";
 import { createTemplateCommand } from "./commands/createTemplateCommand";
-import { compile } from "handlebars";
+import { publishGitRepoCommand } from "./commands/publishGitRepoCommand";
 
 export function activate(context: vscode.ExtensionContext) {
-  let helloWorld = vscode.commands.registerCommand("project-maid.helloWorld", () => {
-    vscode.window.showInformationMessage(compile("{{ hello-world }} World from project-maid!")({ "hello-world": "xxx" }));
-  });
-
   let createTemplate = vscode.commands.registerCommand("project-maid.createTemplate", createTemplateCommand);
 
+  let publishGit = vscode.commands.registerCommand("project-maid.publishGitRepo", publishGitRepoCommand);
+
   context.subscriptions.push(createTemplate);
-  context.subscriptions.push(helloWorld);
+  context.subscriptions.push(publishGit);
 }
 
 export function deactivate() {}

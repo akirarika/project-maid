@@ -33,7 +33,7 @@ export const createTemplateCommand = async (uri: Uri) => {
 
   const templateNames = readChildFolders(join(workspace.uri.fsPath, ".pm", "templates"));
   const templateName = await window.showQuickPick(["<cancel>", ...templateNames], {
-    placeHolder: "use template..",
+    placeHolder: "Use template..",
   });
   if (!templateName || templateName === "<cancel>") {
     return;

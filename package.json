@@ -4,7 +4,7 @@
   "publisher": "akirarika",
   "description": "🚀 Power for your project!",
   "repository": "https://github.com/akirarika/project-maid",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -21,7 +21,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:project-maid.helloWorld",
+    "onCommand:project-maid.publishGitRepo",
     "onCommand:project-maid.createTemplate"
   ],
   "main": "./out/extension.js",
@@ -32,8 +32,12 @@
         "title": "Create from Template.."
       },
       {
-        "command": "project-maid.helloWorld",
-        "title": "H"
+        "command": "project-maid.publishGitRepo",
+        "title": "Publish to Git repo",
+        "icon": {
+          "light": "./icons/anchor-light.svg",
+          "dark": "./icons/anchor-dark.svg"
+        }
       }
     ],
     "menus": {
@@ -46,7 +50,7 @@
       ],
       "editor/title": [
         {
-          "command": "project-maid.helloWorld",
+          "command": "project-maid.publishGitRepo",
           "group": "navigation"
         }
       ]
@@ -55,6 +59,7 @@
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
     "@types/glob": "^7.2.0",
+    "@types/js-yaml": "^4.0.5",
     "@types/mocha": "^9.1.1",
     "@types/node": "14.x",
     "@types/vscode": "^1.66.0",
