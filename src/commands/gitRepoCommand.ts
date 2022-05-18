@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import { existsSync, readFileSync } from "fs-extra";
 import { join } from "path";
 import { Uri, window } from "vscode";
-import { getWorkspace } from "../helpers";
+import { execShellScript, getWorkspace, makeShellScriptIgnoreError } from "../helpers";
 import { load } from "js-yaml";
 import { compile } from "handlebars";
 import { userInfo } from "os";
@@ -15,9 +15,12 @@ interface Config {
   prehooks: string;
 }
 
-export const publishGitRepoCommand = async (uri: Uri) => {
+export const gitRepoCommand = async (uri: Uri) => {
   const date = new Date();
 
+  const action = await window.showQuickPick(["commit & push..", "pull..", "switch branch.."], {
+    placeHolder: "Push to branch..",
+  });
   const workspace = await getWorkspace();
   if (!workspace) {
     return await window.showErrorMessage("Workspace not found.");
@@ -86,40 +89,38 @@ export const publishGitRepoCommand = async (uri: Uri) => {
     ...config,
   };
 
-  console.log(config);
-
   if (undefined === config.branches || 0 === config.branches.length) {
     return await window.showErrorMessage("The 'branches' field must be filled in config.yaml, including your main branches (such as master)");
   }
 
-  const branch = await window.showQuickPick(["<cancel>", ...config.branches], {
-    placeHolder: "Push to branch..",
-  });
-  if (!branch || "<cancel>" === branch) return;
+  if ("commit & push.." === action) {
+    const branch = await window.showQuickPick(["<cancel>", ...config.branches], {
+      placeHolder: "Push to branch..",
+    });
+    if (!branch || "<cancel>" === branch) return;
 
-  const scope = await window.showQuickPick(["<cancel>", ...config.scopes], {
-    placeHolder: "Use commit message scope..",
-  });
-  if (!scope || "<cancel>" === scope) return;
+    const scope = await window.showQuickPick(["<cancel>", ...config.scopes], {
+      placeHolder: "Use commit message scope..",
+    });
+    if (!scope || "<cancel>" === scope) return;
 
-  const subject = await window.showInputBox({
-    value: config.subject,
-    placeHolder: "Enter commit message..",
-  });
-  if (!subject) return;
+    const subject = await window.showInputBox({
+      value: config.subject,
+      placeHolder: "Enter commit message..",
+    });
+    if (!subject) return;
 
-  window.showInformationMessage(`Publishing.. (to ${branch})`);
+    const commands: Array<string> = [];
+    commands.push(`cd ${workspace.uri.fsPath}`);
 
-  setTimeout(async () => {
     if (config.prehooks) {
-      execSync(
+      commands.push(
         compile(config.prehooks)({
           scope: scope,
           branch: branch,
           subject: subject,
           ...vars,
-        }),
-        extcOptions
+        })
       );
     }
 
@@ -135,28 +136,46 @@ export const publishGitRepoCommand = async (uri: Uri) => {
       .replace(/(^\s*)|(\s*$)/g, "");
 
     // Prevent problems caused by git ignoring case
-    execSync("git config core.ignorecase false", extcOptions);
-    execSync("git add --all", extcOptions);
-    try {
-      execSync(`git commit -m "${message}"`, extcOptions);
-    } catch (error) {
-      return await window.showErrorMessage(`Commit failed. The reason may be that no files have been changed.`);
-    }
-    execSync(`git push -u origin "${currentBranch}"`, extcOptions);
+    commands.push("git config core.ignorecase false");
+    commands.push("git add --all");
+    commands.push(`git commit --message "${message}"`);
+    commands.push(`git push -u origin "${currentBranch}"`);
 
     if (currentBranch !== branch) {
-      execSync(`git switch --create "${branch}"`, extcOptions);
-      execSync(`git merge "${branch}"`, extcOptions);
-      execSync(`git push -u origin "${branch}"`, extcOptions);
-      execSync(`git switch "${currentBranch}"`, extcOptions);
+      commands.push(makeShellScriptIgnoreError(`git switch --create "${branch}"`));
+      commands.push(`git switch "${branch}"`);
+      commands.push(`git merge "${branch}"`);
+      commands.push(`git push -u origin "${branch}"`);
+      commands.push(`git switch "${currentBranch}"`);
     }
 
-    if (currentBranch === branch) {
-      window.showInformationMessage(`Successfully pushed all local changes to "${currentBranch}".`);
-    } else {
-      window.showInformationMessage(`Successfully pushed all local changes to "${currentBranch}" and "${branch}".`);
-    }
-  }, 100);
+    execShellScript(commands);
 
-  return;
+    return;
+  }
+
+  if ("pull.." === action) {
+    const commands: Array<string> = [];
+
+    commands.push(`cd ${workspace.uri.fsPath}`);
+    commands.push(`git fetch`);
+    commands.push(`git merge FETCH_HEAD`);
+
+    execShellScript(commands);
+  }
+
+  if ("switch branch.." === action) {
+    const commands: Array<string> = [];
+
+    const branch = await window.showQuickPick(["<cancel>", ...config.branches], {
+      placeHolder: "Push to branch..",
+    });
+    if (!branch || "<cancel>" === branch) return;
+
+    commands.push(`cd ${workspace.uri.fsPath}`);
+    commands.push(makeShellScriptIgnoreError(`git switch --create "${branch}"`));
+    commands.push(`git switch "${branch}"`);
+
+    execShellScript(commands);
+  }
 };

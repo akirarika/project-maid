@@ -1,6 +1,6 @@
 import { exec } from "child_process";
 import { readFileSync, readdirSync, statSync, accessSync, constants } from "fs";
-import { workspace, window, Uri } from "vscode";
+import { workspace, window, Uri, commands } from "vscode";
 import { join, resolve } from "path";
 import { readdir, stat } from "fs-extra";
 
@@ -79,4 +79,45 @@ export const readChildFolders = (parentPath: string) => {
     }
   });
   return filesPath;
+};
+
+export const makeShellScriptIgnoreError = (command: string) => {
+  if ("win32" === process.platform) {
+    return `$ErrorActionPreference = 'SilentlyContinue';${command};$ErrorActionPreference = 'Stop'`;
+  } else {
+    return `${command} || true`;
+  }
+};
+
+export const execShellScript = (commands: Array<string>) => {
+  if ("win32" !== process.platform) {
+    const terminal = window.createTerminal("project-maid");
+    terminal.show();
+    terminal.sendText(
+      [
+        //
+        "clear",
+        'echo "🧹 Maid at working..\n"',
+        ...commands,
+        'echo "\n🌟 Maid work is over! (exit in 3 seconds)"',
+        "sleep 3",
+        "exit 0",
+      ].join(" && ")
+    );
+  } else {
+    const terminal = window.createTerminal("project-maid", "powershell.exe");
+    terminal.show();
+    terminal.sendText(
+      [
+        //
+        "clear",
+        'echo "🧹 Maid at working..\n"',
+        `$ErrorActionPreference='Stop'`,
+        ...commands,
+        'echo "\n🌟 Maid work is over! (exit in 3 seconds)"',
+        "sleep 4",
+        "exit 0",
+      ].join("; ")
+    );
+  }
 };
