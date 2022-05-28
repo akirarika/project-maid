@@ -24,7 +24,7 @@ Project Maid 主要关注中大型工程的组织、开发与协作方面，并�
 
 [x] 模板功能：通过模板创建文件
 
-[ ] 模板功能：创建模板后，自动修改某些文件，如添加路由等
+[x] 模板功能：创建模板后，自动修改某些文件，如添加路由等
 
 [x] Git 功能：一键提交至所选分支，并切换回原分支
 
@@ -96,30 +96,7 @@ Project Maid 会根据此文件(夹)及其内容，来生成最终的文件。
 
 变量是以 `{{}}` 所包含的内容，它会根据创建时的输入，动态替换为相应的内容。这就是我们前文中创建了一个名为 `{{your-name}}-view` 的模板，最终生成了名为 `welcome-view` 的文件的原因。
 
-目前，我们可以使用以下变量：
-
-| 变量名称        | 说明                                             |
-| --------------- | ------------------------------------------------ |
-| yourNameRaw     | 用户所输入的名称，原封不动的写入                 |
-| yourName        | 用户所输入的名称，将被格式化为小驼峰形式         |
-| YourName        | 用户所输入的名称，将被格式化为大驼峰形式         |
-| your_name       | 用户所输入的名称，将被格式化为下划线形式         |
-| your-name       | 用户所输入的名称，将被格式化为中划线形式         |
-| templateNameRaw | 用户所选模板的名称，原封不动的写入               |
-| templateName    | 用户所选模板的名称，将被格式化为小驼峰形式       |
-| TemplateName    | 用户所选模板的名称，将被格式化为大驼峰形式       |
-| template_name   | 用户所选模板的名称，将被格式化为下划线形式       |
-| template-name   | 用户所选模板的名称，将被格式化为中划线形式       |
-| path            | 用户右键创建时，此文件夹的路径，以工程根目录起始 |
-| yyyy            | 当前年份                                         |
-| mm              | 当前月份                                         |
-| dd              | 当前日                                           |
-| h               | 当前小时                                         |
-| m               | 当前分钟                                         |
-| s               | 当前秒                                           |
-| timestamp       | 时间戳 (秒级)                                    |
-| timestampMs     | 时间戳 (毫秒级)                                  |
-| username        | 用户名称，通过获取操作系统中用户名取得           |
+目前，我们可以使用的变量，可以在 [模板变量](https://github.com/akirarika/project-maid/tree/master/docs/template-vars.md) 中查阅。
 
 以上变量，均可以在 `/.pm/templates/你的模板名称` 内部的所有文件夹名称、和 `.tpl` 文件的文件名及内容中使用。
 
@@ -147,6 +124,44 @@ Project Maid 会根据此文件(夹)及其内容，来生成最终的文件。
 
 ```
 {{!-- 我是一行注释 --}}
+```
+
+### 修改其他文件
+
+在创建模板后，我们可能还需要更新一些其他文件，例如添加路由。目前有两种方式完成此步骤的自动化，分别是更新 JSON 文件和执行指定命令。
+
+#### 更新 JSON 文件
+
+创建一个 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`
+
+```yaml
+appendConfigs:
+  - filePath: app.json # 文件路径，可填写绝对路径，相对路径以当前工程根目录为起始
+    append: >- # 追加的 JSON 内容，其中可使用模板变量
+      {
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "{{ YourName }}",
+        "backgroundColor": "#eeeeee",
+        "backgroundTextStyle": "light"
+      }
+    space: 2 # 可选，生成的 JSON，以几个空格为基础缩进，默认为 2
+    appendPath: ["foo", "bar"] # 可选，向哪个层级中追加，被添加的层级必须是数组，默认认为 JSON 根层是一个数组，在根层追加
+  # ...
+```
+
+可能我们需要更新的文件，并不是 JSON 格式，例如 Vue Router 需要直接在代码中添加路由，我们可以创建一个无关的 JSON 文件，在代码中通过遍历该文件的内容，来完成注册路由的功能。或者采用下面的方式。
+
+#### 执行指定命令
+
+我们还可以在模板创建完成后，执行指定的命令。
+
+创建一个 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`
+
+```yaml
+createdHooks:
+  - echo hello-{{YourName}} # 要执行的命令，我们同样可以使用模板变量
+  # ...
 ```
 
 ## Git 功能
@@ -216,23 +231,7 @@ prehooks: echo {{branch}}
 
 在 `config.yaml` 中的 `message` 字段和 `prehooks` 字段中，我们同样可以使用变量。
 
-目前，我们可以使用以下变量：
-
-| 变量名称    | 说明                                   |
-| ----------- | -------------------------------------- |
-| branch      | 用户所选择的分支名称                   |
-| scope       | 用户所选择的提交范畴                   |
-| subject     | 用户所输入的提交描述                   |
-| path        | 当前工程根目录的绝对路径               |
-| yyyy        | 当前年份                               |
-| mm          | 当前月份                               |
-| dd          | 当前日                                 |
-| h           | 当前小时                               |
-| m           | 当前分钟                               |
-| s           | 当前秒                                 |
-| timestamp   | 时间戳 (秒级)                          |
-| timestampMs | 时间戳 (毫秒级)                        |
-| username    | 用户名称，通过获取操作系统中用户名取得 |
+目前，我们可以使用的变量可以在 [Git 变量](https://github.com/akirarika/project-maid/tree/master/docs/git-vars.md) 中查阅。
 
 ## 待续
 

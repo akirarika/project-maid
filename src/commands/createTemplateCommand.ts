@@ -1,12 +1,27 @@
 import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from "fs";
 import { basename, dirname, join } from "path";
 import { Uri, window } from "vscode";
-import { getWorkspace, readChildFiles, readChildFolders } from "../helpers";
+import { execShellScript, getWorkspace, readChildFiles, readChildFolders } from "../helpers";
 import { copySync } from "fs-extra";
 import { camel, hump, hyphen, underline } from "@poech/camel-hump-under";
 import { compile } from "handlebars";
 import { readDirDeepSync } from "read-dir-deep";
+import { load } from "js-yaml";
 import { userInfo } from "os";
+
+interface appendConfig {
+  filePath: string;
+  appendPath?: Array<string>;
+  append: string;
+  space?: number;
+}
+
+type createdHook = string;
+
+interface Config {
+  createdHooks?: Array<createdHook>;
+  appendConfigs?: Array<appendConfig>;
+}
 
 export const createTemplateCommand = async (uri: Uri) => {
   const selectedPath = uri.fsPath;
@@ -67,6 +82,64 @@ export const createTemplateCommand = async (uri: Uri) => {
   const tempatePath = join(workspace.uri.fsPath, ".pm", "templates", templateName);
   const templateFolders = readChildFolders(tempatePath);
 
+  let templateConfig: Config | undefined;
+  try {
+    templateConfig = load(readFileSync(join(tempatePath, "config.yaml"), "utf-8")) as Config;
+    let defaultConfig = {
+      appendConfigs: [],
+      createdHooks: [],
+    };
+    templateConfig = {
+      ...defaultConfig,
+      ...templateConfig,
+    };
+  } catch (error) {
+    return await window.showErrorMessage(
+      "Created folder successfully, but there may be errors in other operations. Please check your config: \n" + error
+    );
+  }
+
+  const handleFinish = async () => {
+    try {
+      if (undefined !== templateConfig) {
+        if (undefined !== templateConfig.appendConfigs) {
+          for (const iterator of templateConfig.appendConfigs) {
+            let filePath = iterator.filePath;
+            if (!filePath.startsWith("/") && filePath.search(/^[a-zA-Z]:/) === -1) {
+              filePath = join(workspace.uri.fsPath, filePath);
+            }
+            let json = JSON.parse(readFileSync(filePath).toString());
+            if ("object" !== typeof json) throw new Error("This JSON file is empty or unqualified: " + filePath);
+            let pendingJson: Array<any> = json;
+            if (!Array.isArray(pendingJson)) throw new Error("You can only append to the end of the array. " + filePath);
+            if (Array.isArray(iterator.appendPath)) {
+              for (const key in iterator.appendPath) {
+                pendingJson = pendingJson[key];
+              }
+            }
+            let append = iterator.append;
+            append = compile(`${append}`)(templateInnerVars);
+            pendingJson.push(JSON.parse(append));
+            writeFileSync(filePath, JSON.stringify(json, null, iterator.space ?? 2));
+          }
+        }
+
+        if (undefined !== templateConfig.createdHooks && 0 !== templateConfig.createdHooks.length) {
+          const commands: Array<string> = [];
+          commands.push(`cd ${workspace.uri.fsPath}`);
+          for (const iterator of templateConfig.createdHooks) {
+            commands.push(compile(`${iterator}`)(templateInnerVars));
+          }
+          execShellScript(commands);
+        }
+      }
+    } catch (error) {
+      return await window.showErrorMessage(
+        "Created folder successfully, but there may be errors in other operations. Please check your config: \n" + error
+      );
+    }
+  };
+
   if (templateFolders.length > 1) {
     return await window.showErrorMessage(
       `The root of a template can only exist in one folder or one .tpl file. currently, it has ${templateFolders.length} folders.`
@@ -74,7 +147,7 @@ export const createTemplateCommand = async (uri: Uri) => {
   }
 
   if (templateFolders.length === 0) {
-    const templateFiles = readChildFiles(tempatePath).filter((file) => file.endsWith(".tpl"));
+    let templateFiles = readChildFiles(tempatePath).filter((file) => file.endsWith(".tpl"));
     if (templateFiles.length > 1 || templateFiles.length === 0) {
       return await window.showErrorMessage(
         `The root of a template can only exist in one folder or one .tpl file. currently, it has ${templateFolders.length} .tpl files.`
@@ -94,6 +167,8 @@ export const createTemplateCommand = async (uri: Uri) => {
     const raw = readFileSync(createdFile).toString();
     const result = compile(raw)(templateInnerVars);
     writeFileSync(createdFile, result);
+
+    await handleFinish();
 
     window.showInformationMessage("Created file successfully.");
     return;
@@ -133,6 +208,8 @@ export const createTemplateCommand = async (uri: Uri) => {
     const folderName = basename(createdFolder);
     renameSync(createdFolder, join(folderPath, compile(`${folderName}`)(templateInnerVars)));
   }
+
+  await handleFinish();
 
   window.showInformationMessage("Created folder successfully.");
   return;

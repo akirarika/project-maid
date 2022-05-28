@@ -18,7 +18,7 @@ interface Config {
 export const gitRepoCommand = async (uri: Uri) => {
   const date = new Date();
 
-  const action = await window.showQuickPick(["commit & push..", "pull..", "switch branch.."], {
+  const action = await window.showQuickPick(["commit & push..", "pull..", "switch branch..", "merge branch.."], {
     placeHolder: "Push to branch..",
   });
   const workspace = await getWorkspace();
@@ -144,7 +144,7 @@ export const gitRepoCommand = async (uri: Uri) => {
     if (currentBranch !== branch) {
       commands.push(makeShellScriptIgnoreError(`git switch --create "${branch}"`));
       commands.push(`git switch "${branch}"`);
-      commands.push(`git merge "${branch}"`);
+      commands.push(`git merge "${currentBranch}"`);
       commands.push(`git push -u origin "${branch}"`);
       commands.push(`git switch "${currentBranch}"`);
     }
@@ -175,6 +175,34 @@ export const gitRepoCommand = async (uri: Uri) => {
     commands.push(`cd ${workspace.uri.fsPath}`);
     commands.push(makeShellScriptIgnoreError(`git switch --create "${branch}"`));
     commands.push(`git switch "${branch}"`);
+
+    execShellScript(commands);
+  }
+
+  if ("merge branch.." === action) {
+    const fromBranch = await window.showQuickPick(["<cancel>", ...config.branches], {
+      placeHolder: "Source branch..",
+    });
+    if (!fromBranch || "<cancel>" === fromBranch) return;
+
+    const toBranch = await window.showQuickPick(["<cancel>", ...config.branches], {
+      placeHolder: "Target branch..",
+    });
+    if (!toBranch || "<cancel>" === toBranch) return;
+    if (fromBranch === toBranch) return;
+
+    const currentBranch = execSync("git symbolic-ref --short HEAD", extcOptions)
+      .toString()
+      .replace(/(^\s*)|(\s*$)/g, "");
+
+    const commands: Array<string> = [];
+    commands.push(`cd ${workspace.uri.fsPath}`);
+
+    commands.push(makeShellScriptIgnoreError(`git switch --create "${toBranch}"`));
+    commands.push(`git switch "${toBranch}"`);
+    commands.push(`git merge "${fromBranch}"`);
+    commands.push(`git push -u origin "${toBranch}"`);
+    commands.push(`git switch "${currentBranch}"`);
 
     execShellScript(commands);
   }
