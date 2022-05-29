@@ -106,11 +106,11 @@ export function welcome() {
 
 目前，我们可以使用的变量，可以在 [模板变量](https://github.com/akirarika/project-maid/tree/master/docs/template-vars.md) 中查阅。
 
-Project Maid 会在两种情况下，实用模板变量，分别是：
+Project Maid 会在两种情况下，尝试使用模板变量，分别是：
 
-- `/.pm/templates/你的模板名称/*` 中所有文件夹的名称，会尝试使用模板变量。
+- `/.pm/templates/你的模板名称/*` 中所有文件夹，会尝试在其名称中使用模板变量。最终生成的文件夹的实际名称，是被模板变量替换过的。
 
-- `/.pm/templates/你的模板名称/*` 中所有以 `.tpl` 结尾的文件，他们的文件名称及文件中的内容，会尝试使用模板变量。
+- `/.pm/templates/你的模板名称/*` 中所有以 `.tpl` 结尾的文件，会尝试在其文件名称、和其内容中，使用模板变量。最终生成的文件名，会删去 `.tpl`。
 
 - `/.pm/templates/你的模板名称/*` 中，不以 `.tpl` 结尾的文件，将被**原封不动的复制**。
 
