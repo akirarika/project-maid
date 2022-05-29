@@ -140,16 +140,18 @@ Project Maid 会在两种情况下，尝试使用模板变量，分别是：
 
 ### 修改其他文件
 
-在创建模板后，我们可能还需要更新一些其他文件，例如添加路由。目前有两种方式完成此步骤的自动化，分别是更新 JSON 文件和执行指定命令。
+在创建模板后，我们可能还需要更新一些其他文件，例如添加路由。目前有三种方式完成此步骤的自动化，分别是更新 JSON 文件、根据 JSON 生成文件和执行指定命令。
 
 #### 更新 JSON 文件
 
-创建一个 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`
+通过配置此功能，我们可以实现当我们新建模板时，自动在此 JSON 文件中追加内容。
+
+修改 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`（如果不存在，创建即可）
 
 ```yaml
 appendConfigs:
   - filePath: app.json # 文件路径，可填写绝对路径，相对路径以当前工程根目录为起始
-    append: >- # 追加的 JSON 内容，其中可使用模板变量
+    append: | # 追加的 JSON 内容，其中可使用模板变量
       {
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black",
@@ -157,22 +159,100 @@ appendConfigs:
         "backgroundColor": "#eeeeee",
         "backgroundTextStyle": "light"
       }
-    space: 2 # 可选，生成的 JSON，以几个空格为基础缩进，默认为 2
+    space: 2 # 可选，最终 JSON 中缩进的空格数，默认为 2
     appendPath: ["foo", "bar"] # 可选，向哪个层级中追加，被添加的层级必须是数组，默认认为 JSON 根层是一个数组，在根层追加
   # ...
 ```
 
-可能我们需要更新的文件，并不是 JSON 格式，例如 Vue Router 需要直接在代码中添加路由，我们可以创建一个无关的 JSON 文件，在代码中通过遍历该文件的内容，来完成注册路由的功能。或者采用下面的方式。
+#### 生成文件 (基于 JSON 文件)
+
+通过配置此功能，我们可以实现，在新建模板之后，自动在指定位置生成文件。
+
+假设，我们拥有一个 `/configs/views.json` 文件，内容如下：
+
+```json
+[
+  {
+    "name": "foo",
+    "file": "/src/views/Foo.vue"
+  },
+  {
+    "name": "bar",
+    "file": "/src/views/Bar.vue"
+  },
+  {
+    "name": "baz",
+    "file": "/src/views/Baz.vue"
+  }
+]
+```
+
+接下来，我们尝试实现以下功能：
+
+- 使用模板新建文件，自动向 `/configs/views.json` 内追加内容。
+
+- 根据 `/configs/views.json` 中的内容，生成 `router/index.js` 代码。
+
+修改 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`（如果不存在，创建即可）
+
+```yaml
+# 我们先设置，每次新建模板后更新此 JSON 文件
+appendConfigs:
+  - filePath: configs/views.json
+    append: |
+      {
+        "name": "{{your-name}}",
+        "file": "/{{path}}/{{YourName}}.vue"
+      }
+# 接着，我们配置如何生成文件
+rewritedFiles:
+  - filePath: router/index.js # 文件生成位置。若此位置的文件存在，将覆盖。可填写绝对路径，相对路径以当前工程根目录为起始
+    jsons: # 可选，将这些 json 文件注入到模板变量中。我们这里使用 appendConfigs 中刚刚更新的 JSON 文件
+      - name: yourJsonVarViews # 名称，可在模板中直接使用此名称，来使用变量
+        path: configs/views.json # 文件路径，可填写绝对路径，相对路径以当前工程根目录为起始
+    rewrite: | # 文件模板内容
+      /* ======== WARNING ======== */
+      /* The contents of this file are generated according to /configs/views.json. Please do not modify this file directly */
+
+      import { createRouter, createWebHistory } from 'vue-router';
+      {{#each views}}
+      import {{this.name}} from '{{this.file}}';
+      {{/each}}
+
+      const routes = [
+      {{#each yourJsonVarViews}}
+        {
+          name: '{{this.name}}',
+          path: '/{{this.name}}',
+          component: {{this.name}},
+        },
+      {{/each}}
+      ];
+
+      const router = createRouter({
+        history: createWebHistory(),
+        routes: routes,
+      });
+
+      export default router;
+  # ...
+```
+
+你可能注意到了，我们在 `rewrite` 中不但可以使用 [模板变量](https://github.com/akirarika/project-maid/tree/master/docs/template-vars.md)，还将 JSON 文件内容转为了变量，在其中使用。另外，我们还还通过 `#each` 来遍历 JSON，最终生成出我们所期望的文件。
 
 #### 执行指定命令
 
-我们还可以在模板创建完成后，执行指定的命令。
+尽管，前文所述的两种方法已经可以满足大部分场景，但有时，我们还需要更加可自定义的方式完成我们想要的操作。例如，当我们创建一个模型文件后，我们需要运行框架的命令，从数据库中自动读取并配置此模型对应的列。
 
-创建一个 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`
+我们可以配置一个挂钩，在模板创建阶段结束后，挂钩中的所有命令都将被按顺序执行。
+
+配置命令时，我们同样可以使用 [模板变量](https://github.com/akirarika/project-maid/tree/master/docs/template-vars.md)。
+
+修改 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`（如果不存在，创建即可）
 
 ```yaml
 createdHooks:
-  - echo hello-{{YourName}} # 要执行的命令，我们同样可以使用模板变量
+  - echo hello-{{YourName}}-1 # 要执行的命令，我们同样可以使用模板变量
   # ...
 ```
 

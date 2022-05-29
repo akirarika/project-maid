@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from "fs";
-import { basename, dirname, join } from "path";
+import { basename, dirname, join, relative } from "path";
 import { Uri, window } from "vscode";
 import { execShellScript, getWorkspace, readChildFiles, readChildFolders } from "../helpers";
-import { copySync } from "fs-extra";
+import { copySync, outputFile } from "fs-extra";
 import { camel, hump, hyphen, underline } from "@poech/camel-hump-under";
 import { compile } from "handlebars";
 import { readDirDeepSync } from "read-dir-deep";
@@ -16,10 +16,20 @@ interface appendConfig {
   space?: number;
 }
 
+interface rewritedFile {
+  filePath: string;
+  rewrite: string;
+  jsons?: Array<{
+    name: string;
+    path: string;
+  }>;
+}
+
 type createdHook = string;
 
 interface Config {
   createdHooks?: Array<createdHook>;
+  rewritedFiles?: Array<rewritedFile>;
   appendConfigs?: Array<appendConfig>;
 }
 
@@ -67,7 +77,8 @@ export const createTemplateCommand = async (uri: Uri) => {
     TemplateName: hump(templateName),
     template_name: underline(templateName).replace(/^\_|\_+$/gm, ""),
     "template-name": hyphen(templateName).replace(/^\-+|\-+$/gm, ""),
-    path: workspace.uri.fsPath,
+    path: relative(workspace.uri.fsPath, selectedPath).replace(/\\/, "/"),
+    workspacePath: workspace.uri.fsPath,
     yyyy: `${date.getFullYear()}`.padStart(4, "0"),
     mm: `${date.getMonth() + 1}`.padStart(2, "0"),
     dd: `${date.getDate()}`.padStart(2, "0"),
@@ -87,6 +98,7 @@ export const createTemplateCommand = async (uri: Uri) => {
     templateConfig = load(readFileSync(join(tempatePath, "config.yaml"), "utf-8")) as Config;
     let defaultConfig = {
       appendConfigs: [],
+      rewritedFiles: [],
       createdHooks: [],
     };
     templateConfig = {
@@ -120,7 +132,35 @@ export const createTemplateCommand = async (uri: Uri) => {
             let append = iterator.append;
             append = compile(`${append}`)(templateInnerVars);
             pendingJson.push(JSON.parse(append));
-            writeFileSync(filePath, JSON.stringify(json, null, iterator.space ?? 2));
+            await outputFile(filePath, JSON.stringify(json, null, iterator.space ?? 2));
+          }
+        }
+
+        if (undefined !== templateConfig.rewritedFiles) {
+          for (const iterator of templateConfig.rewritedFiles) {
+            let filePath = iterator.filePath;
+            if (!filePath.startsWith("/") && filePath.search(/^[a-zA-Z]:/) === -1) {
+              filePath = join(workspace.uri.fsPath, filePath);
+            }
+
+            const config: Record<any, any> = {
+              ...templateInnerVars,
+            };
+            if (undefined !== iterator.jsons) {
+              for (const json of iterator.jsons) {
+                let jsonPath = json.path;
+                if (!jsonPath.startsWith("/") && jsonPath.search(/^[a-zA-Z]:/) === -1) {
+                  jsonPath = join(workspace.uri.fsPath, jsonPath);
+                }
+                config[json.name] = JSON.parse(readFileSync(jsonPath).toString());
+              }
+            }
+
+            console.log(iterator.rewrite);
+
+            let content = compile(iterator.rewrite)(config);
+
+            await outputFile(filePath, content);
           }
         }
 
@@ -166,7 +206,7 @@ export const createTemplateCommand = async (uri: Uri) => {
 
     const raw = readFileSync(createdFile).toString();
     const result = compile(raw)(templateInnerVars);
-    writeFileSync(createdFile, result);
+    await outputFile(createdFile, result);
 
     await handleFinish();
 
@@ -191,7 +231,7 @@ export const createTemplateCommand = async (uri: Uri) => {
     }
     const raw = readFileSync(createdFile).toString();
     const result = compile(raw)(templateInnerVars);
-    writeFileSync(createdFile, result);
+    await outputFile(createdFile, result);
   }
   for (const createdFile of createdFiles) {
     if (!createdFile.endsWith(".tpl")) {

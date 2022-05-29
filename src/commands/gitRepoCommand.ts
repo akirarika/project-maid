@@ -1,6 +1,6 @@
 import { execSync } from "child_process";
 import { existsSync, readFileSync } from "fs-extra";
-import { join } from "path";
+import { join, relative } from "path";
 import { Uri, window } from "vscode";
 import { execShellScript, getWorkspace, makeShellScriptIgnoreError } from "../helpers";
 import { load } from "js-yaml";
@@ -16,6 +16,7 @@ interface Config {
 }
 
 export const gitRepoCommand = async (uri: Uri) => {
+  const selectedPath = uri.fsPath;
   const date = new Date();
 
   const action = await window.showQuickPick(["commit & push..", "pull..", "switch branch..", "merge branch.."], {
@@ -35,7 +36,8 @@ export const gitRepoCommand = async (uri: Uri) => {
   }
 
   const vars = {
-    path: workspace.uri.fsPath,
+    path: relative(workspace.uri.fsPath, selectedPath).replace(/\\/, "/"),
+    workspacePath: workspace.uri.fsPath,
     yyyy: `${date.getFullYear()}`.padStart(4, "0"),
     mm: `${date.getMonth() + 1}`.padStart(2, "0"),
     dd: `${date.getDate()}`.padStart(2, "0"),
