@@ -245,6 +245,8 @@ prehooks: echo {{branch}}
 
 ## 待续
 
+<!--
+
 ## 贡献
 
 - Clone 此仓库
@@ -256,3 +258,5 @@ prehooks: echo {{branch}}
 - `npm run package` 打包
 
 - 访问 [扩展商店](https://marketplace.visualstudio.com/)，点击右上角 `Publish extensions` 发布扩展
+
+-->
