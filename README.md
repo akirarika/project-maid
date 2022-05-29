@@ -28,7 +28,7 @@ Project Maid 主要关注中大型工程的组织、开发与协作方面，并�
 
 - [x] Git 功能：一键提交至所选分支，**并切换回原分支**
 
-- [x] Git 功能：Commit 模板功能，并约束 Commit 格式
+- [x] Git 功能：Commit 模板功能，打造团队 Commit 规范
 
 - [x] Git 功能：在 Commit 前，运行指定 Shell 脚本
 
