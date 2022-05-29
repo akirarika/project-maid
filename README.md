@@ -201,7 +201,7 @@ Project Maid 可以帮你，将你工程中所有的更改，一键提交。
 
 ### Commit 模板
 
-你可以为用户提供模板，并指定 Commit 的格式。
+你可以为使用者提供模板，并指定 Commit 的格式。
 
 Commit 时分为两部分，`scopes` 和 `subject`。
 
@@ -212,6 +212,8 @@ Commit 时分为两部分，`scopes` 和 `subject`。
 ```js
 ["✨ feat", "🔧 fix", "📝 docs", "🎨 style", "⚡️ perf", "✅ test", "🐳 chore", "🚀 build", "🔨 refactor", "🎉 init"];
 ```
+
+默认的 `subject` 是空字符串，须使用者手动填写。
 
 你可以在 `config.yaml` 中自定义它们：
 
