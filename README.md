@@ -146,7 +146,7 @@ Project Maid 会在两种情况下，尝试使用模板变量，分别是：
 
 通过配置此功能，我们可以实现当我们新建模板时，自动在此 JSON 文件中追加内容。
 
-修改 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`（如果不存在，创建即可）
+修改 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`（如果不存在，创建即可）
 
 ```yaml
 appendConfigs:
@@ -193,7 +193,7 @@ appendConfigs:
 
 - 根据 `/configs/views.json` 中的内容，生成 `router/index.js` 文件的代码。
 
-修改 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`（如果不存在，创建即可）
+修改 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`（如果不存在，创建即可）
 
 ```yaml
 # 我们先设置，每次新建模板后更新此 JSON 文件
@@ -248,7 +248,7 @@ rewritedFiles:
 
 配置命令时，我们同样可以使用 [模板变量](https://github.com/akirarika/project-maid/tree/master/docs/template-vars.md)。
 
-修改 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`（如果不存在，创建即可）
+修改 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`（如果不存在，创建即可）
 
 ```yaml
 createdHooks:
