@@ -191,7 +191,7 @@ appendConfigs:
 
 - 使用模板新建文件，自动向 `/configs/views.json` 内追加内容。
 
-- 根据 `/configs/views.json` 中的内容，生成 `router/index.js` 代码。
+- 根据 `/configs/views.json` 中的内容，生成 `router/index.js` 文件的代码。
 
 修改 `config.yaml` 文件，例如 `/.pm/template/FooTemplate/config.yaml`（如果不存在，创建即可）
 
