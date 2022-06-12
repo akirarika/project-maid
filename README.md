@@ -146,7 +146,7 @@ Project Maid 会在两种情况下，尝试使用模板变量，分别是：
 
 通过配置此功能，我们可以实现当我们新建模板时，自动在此 JSON 文件中追加内容。
 
-修改 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`（如果不存在，创建即可）
+创建 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`
 
 ```yaml
 appendConfigs:
@@ -164,9 +164,9 @@ appendConfigs:
   # ...
 ```
 
-#### 生成文件 (基于 JSON 文件)
+#### 文件生成器 (可基于 JSON 文件)
 
-通过配置此功能，我们可以实现，在新建模板之后，自动在指定位置生成文件。
+通过配置此功能，我们可以实现，在新建模板之后，自动在指定位置按照模板生成文件。并且支持将 `JSON` 文件作为变量注入。
 
 假设，我们拥有一个 `/configs/views.json` 文件，内容如下：
 
@@ -193,10 +193,48 @@ appendConfigs:
 
 - 根据 `/configs/views.json` 中的内容，生成 `router/index.js` 文件的代码。
 
-修改 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`（如果不存在，创建即可）
+首先：
+
+创建 `creators` 文件夹，在里面创建一个文件夹，文件夹名称为创建器名称。我们暂时以 `makeRouterJs` 命名。
+
+创建 `config.yaml` 文件，例如 `/.pm/creators/makeRouterJs/config.yaml`，并在其内部填写：
 
 ```yaml
-# 我们先设置，每次新建模板后更新此 JSON 文件
+filePath: router/index.js # 文件生成位置。若此位置的文件存在，将覆盖。可填写绝对路径，相对路径以当前工程根目录为起始
+jsons: # 可选，将这些 json 文件注入到模板变量中。我们这里使用 appendConfigs 中刚刚更新的 JSON 文件
+  - name: yourJsonVarViews # 名称，可在模板中直接使用此名称，来使用变量
+    path: configs/views.json # 文件路径，可填写绝对路径，相对路径以当前工程根目录为起始
+rewrite: | # 文件模板内容
+  /* ======== WARNING ======== */
+  /* The contents of this file are generated according to /configs/views.json. Please do not modify this file directly */
+
+  import { createRouter, createWebHistory } from 'vue-router';
+  {{#each yourJsonVarViews}}
+  import {{this.name}} from '{{this.file}}';
+  {{/each}}
+
+  const routes = [
+  {{#each yourJsonVarViews}}
+    {
+      name: '{{this.name}}',
+      path: '/{{this.name}}',
+      component: {{this.name}},
+    },
+  {{/each}}
+  ];
+
+  const router = createRouter({
+    history: createWebHistory(),
+    routes: routes,
+  });
+
+  export default router;
+```
+
+接着，我们修改 **模板** 的 `config.yaml` 文件，例如 `/.pm/template/你的模板名称/config.yaml` (如不存在，创建即可)
+
+```yaml
+# 我们为模板配置，每次新建模板后更新此 JSON 文件
 appendConfigs:
   - filePath: configs/views.json
     append: |
@@ -204,39 +242,11 @@ appendConfigs:
         "name": "{{your-name}}",
         "file": "/{{path}}/{{YourName}}.vue"
       }
-# 接着，我们配置如何生成文件
-rewritedFiles:
-  - filePath: router/index.js # 文件生成位置。若此位置的文件存在，将覆盖。可填写绝对路径，相对路径以当前工程根目录为起始
-    jsons: # 可选，将这些 json 文件注入到模板变量中。我们这里使用 appendConfigs 中刚刚更新的 JSON 文件
-      - name: yourJsonVarViews # 名称，可在模板中直接使用此名称，来使用变量
-        path: configs/views.json # 文件路径，可填写绝对路径，相对路径以当前工程根目录为起始
-    rewrite: | # 文件模板内容
-      /* ======== WARNING ======== */
-      /* The contents of this file are generated according to /configs/views.json. Please do not modify this file directly */
-
-      import { createRouter, createWebHistory } from 'vue-router';
-      {{#each views}}
-      import {{this.name}} from '{{this.file}}';
-      {{/each}}
-
-      const routes = [
-      {{#each yourJsonVarViews}}
-        {
-          name: '{{this.name}}',
-          path: '/{{this.name}}',
-          component: {{this.name}},
-        },
-      {{/each}}
-      ];
-
-      const router = createRouter({
-        history: createWebHistory(),
-        routes: routes,
-      });
-
-      export default router;
-  # ...
+executeCreators: # 要执行的创建器名称，须与 /.pm/creators 下的文件夹名称相同
+  - makeRouterJs
 ```
+
+至此，试着创建一个模板吧！
 
 你可能注意到了，我们在 `rewrite` 中不但可以使用 [模板变量](https://github.com/akirarika/project-maid/tree/master/docs/template-vars.md)，还将 JSON 文件内容转为了变量，在其中使用。另外，我们还通过 `#each` 来遍历 JSON，最终生成出我们所期望的文件。
 
@@ -248,12 +258,21 @@ rewritedFiles:
 
 配置命令时，我们同样可以使用 [模板变量](https://github.com/akirarika/project-maid/tree/master/docs/template-vars.md)。
 
-修改 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`（如果不存在，创建即可）
+我们先建一个 `hooks` 文件夹，在里面创建一个文件夹，文件夹名称为 Hook 的名称。我们暂时以 `echoHelloWorldCommand` 命名。
+
+创建 `config.yaml` 文件，例如 `/.pm/hooks/echoHelloWorldCommand/config.yaml`，并在其内部填写：
 
 ```yaml
-createdHooks:
-  - echo hello-{{YourName}}-1 # 要执行的命令，我们同样可以使用模板变量
-  # ...
+- echo "hello,"
+- echo "world!"
+```
+
+修改 **模板** 的 `config.yaml` 文件，例如 `/.pm/template/模板名称/config.yaml`，并在末尾添加以下内容：
+
+```yaml
+# ...
+executeHooks: # 要执行的 Hook 名称，须与 /.pm/hooks 下的文件夹名称相同
+  - echoHelloWorldCommand
 ```
 
 ## Git 功能

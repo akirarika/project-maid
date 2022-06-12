@@ -4,7 +4,7 @@
   "publisher": "akirarika",
   "description": "🚀 Power for your project!",
   "repository": "https://github.com/akirarika/project-maid",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -22,6 +22,8 @@
   ],
   "activationEvents": [
     "onCommand:project-maid.git",
+    "project-maid.executeCreators",
+    "project-maid.executeHooks",
     "onCommand:project-maid.createTemplate"
   ],
   "main": "./out/extension.js",
@@ -30,6 +32,14 @@
       {
         "command": "project-maid.createTemplate",
         "title": "Create from Template.."
+      },
+      {
+        "command": "project-maid.executeCreators",
+        "title": "Execute Creators"
+      },
+      {
+        "command": "project-maid.executeHooks",
+        "title": "Execute Hooks"
       },
       {
         "command": "project-maid.git",

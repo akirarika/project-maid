@@ -8,6 +8,8 @@ import { compile } from "handlebars";
 import { readDirDeepSync } from "read-dir-deep";
 import { load } from "js-yaml";
 import { userInfo } from "os";
+import { executeCreators } from "./executeCreatorsCommand";
+import { executeHooks } from "./executeHooksCommand";
 
 interface appendConfig {
   filePath: string;
@@ -16,20 +18,18 @@ interface appendConfig {
   space?: number;
 }
 
-interface rewritedFile {
-  filePath: string;
-  rewrite: string;
-  jsons?: Array<{
-    name: string;
-    path: string;
-  }>;
-}
+// interface executeSome {
+//   name: string;
+//   vars: Record<string, string | number | boolean | undefined>;
+// }
 
-type createdHook = string;
+// 不再支持注入变量功能，为了保证 command 的幂等性
+// 因此，只需要简单的填写要执行的名称即可，不需要再传入 vars
+type executeSome = string;
 
 interface Config {
-  createdHooks?: Array<createdHook>;
-  rewritedFiles?: Array<rewritedFile>;
+  executeCreators?: Array<executeSome>;
+  executeHooks?: Array<executeSome>;
   appendConfigs?: Array<appendConfig>;
 }
 
@@ -98,7 +98,7 @@ export const createTemplateCommand = async (uri: Uri) => {
     templateConfig = load(readFileSync(join(tempatePath, "config.yaml"), "utf-8")) as Config;
     let defaultConfig = {
       appendConfigs: [],
-      rewritedFiles: [],
+      executeCreators: [],
       createdHooks: [],
     };
     templateConfig = {
@@ -106,9 +106,9 @@ export const createTemplateCommand = async (uri: Uri) => {
       ...templateConfig,
     };
   } catch (error) {
-    return await window.showErrorMessage(
-      "Created folder successfully, but there may be errors in other operations. Please check your config: \n" + error
-    );
+    // return await window.showErrorMessage(
+    //   "Created folder successfully, but there may be errors in other operations. Please check your config: \n" + error
+    // );
   }
 
   const handleFinish = async () => {
@@ -136,41 +136,12 @@ export const createTemplateCommand = async (uri: Uri) => {
           }
         }
 
-        if (undefined !== templateConfig.rewritedFiles) {
-          for (const iterator of templateConfig.rewritedFiles) {
-            let filePath = iterator.filePath;
-            if (!filePath.startsWith("/") && filePath.search(/^[a-zA-Z]:/) === -1) {
-              filePath = join(workspace.uri.fsPath, filePath);
-            }
-
-            const config: Record<any, any> = {
-              ...templateInnerVars,
-            };
-            if (undefined !== iterator.jsons) {
-              for (const json of iterator.jsons) {
-                let jsonPath = json.path;
-                if (!jsonPath.startsWith("/") && jsonPath.search(/^[a-zA-Z]:/) === -1) {
-                  jsonPath = join(workspace.uri.fsPath, jsonPath);
-                }
-                config[json.name] = JSON.parse(readFileSync(jsonPath).toString());
-              }
-            }
-
-            console.log(iterator.rewrite);
-
-            let content = compile(iterator.rewrite)(config);
-
-            await outputFile(filePath, content);
-          }
+        if (undefined !== templateConfig.executeCreators) {
+          await executeCreators(templateConfig.executeCreators, workspace, templateInnerVars);
         }
 
-        if (undefined !== templateConfig.createdHooks && 0 !== templateConfig.createdHooks.length) {
-          const commands: Array<string> = [];
-          commands.push(`cd ${workspace.uri.fsPath}`);
-          for (const iterator of templateConfig.createdHooks) {
-            commands.push(compile(`${iterator}`)(templateInnerVars));
-          }
-          execShellScript(commands);
+        if (undefined !== templateConfig.executeHooks && 0 !== templateConfig.executeHooks.length) {
+          await executeHooks(templateConfig.executeHooks, workspace, templateInnerVars);
         }
       }
     } catch (error) {
